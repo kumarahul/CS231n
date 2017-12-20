@@ -68,6 +68,7 @@ class TwoLayerNet(object):
     W1, b1 = self.params['W1'], self.params['b1']
     W2, b2 = self.params['W2'], self.params['b2']
     N, D = X.shape
+   
 
     # Compute the forward pass
     scores = None
@@ -76,7 +77,44 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
+    
+    
+    o1=np.maximum(0,np.matmul(X,W1)+b1)
+   
+    o2=np.matmul(o1,W2)+b2
+    scores=o2
+
+    #o2-=np.max(scores,axis=1,keepdims=True)
+    exp_scores=np.exp(o2)
+    probs=exp_scores/np.sum(exp_scores,axis=1,keepdims=True)
+    log_probs=-np.log(probs[range(N),y])
+    loss=np.sum(log_probs)/N
+    loss+=0.5*reg*(np.sum(W1*W1)+np.sum(W2*W2)+np.sum(b1*b1)+np.sum(b2*b2))
+    
+    
+    dscores=probs
+    dscores[range(N),y]-=1
+    dscores/=N
+    dW2=np.matmul(o1.transpose(),dscores)+reg*W2
+    
+    db2=np.sum(dscores,axis=0,keepdims=True)+reg*b2
+    v1=np.matmul(dscores,W2.transpose())
+    v1[o1<=0]=0
+    dW1=np.matmul(X.transpose(),v1)+reg*W1
+    db1=np.sum(v1,axis=0,keepdims=True)+reg*b1
+    """
+    print('db1 shape', db1.shape, ' db1 shape', db1.shape)
+    print('db2 shape', db2.shape, ' db2 shape', db2.shape)
+    print('dW1 shape', dW1.shape, ' W1 shape', W1.shape)
+    print('dW2 shape', dW2.shape, ' W2 shape', W2.shape)
+    """
+      
+    
+    
+    
     pass
+
+    
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -86,7 +124,6 @@ class TwoLayerNet(object):
       return scores
 
     # Compute the loss
-    loss = None
     #############################################################################
     # TODO: Finish the forward pass, and compute the loss. This should include  #
     # both the data loss and L2 regularization for W1 and W2. Store the result  #
@@ -100,6 +137,10 @@ class TwoLayerNet(object):
 
     # Backward pass: compute gradients
     grads = {}
+    grads['W1']=dW1
+    grads['W2']=dW2
+    grads['b1']=db1
+    grads['b2']=db2
     #############################################################################
     # TODO: Compute the backward pass, computing the derivatives of the weights #
     # and biases. Store the results in the grads dictionary. For example,       #
@@ -144,7 +185,9 @@ class TwoLayerNet(object):
     for it in xrange(num_iters):
       X_batch = None
       y_batch = None
-
+      indices=np.random.choice(num_train, batch_size)
+      X_batch=np.array([X[i] for i in indices])
+      y_batch=np.array([y[i] for i in indices])
       #########################################################################
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
@@ -157,7 +200,14 @@ class TwoLayerNet(object):
       # Compute loss and gradients using the current minibatch
       loss, grads = self.loss(X_batch, y=y_batch, reg=reg)
       loss_history.append(loss)
-
+      ar1=self.params['W1']-learning_rate*grads['W1']
+      self.params['W1']=ar1
+      ar2=self.params['W2']-learning_rate*grads['W2']
+      self.params['W2']=ar2
+      ar3=self.params['b1']-learning_rate*grads['b1']
+      self.params['b1']=ar3
+      ar4=self.params['b2']-learning_rate*grads['b2']
+      self.params['b2']=ar4
       #########################################################################
       # TODO: Use the gradients in the grads dictionary to update the         #
       # parameters of the network (stored in the dictionary self.params)      #
@@ -205,7 +255,12 @@ class TwoLayerNet(object):
       to have class c, where 0 <= c < C.
     """
     y_pred = None
-    y_pred=np.matmul(self.params['W1'],)
+    o1=np.matmul(X,self.params['W1'])+self.params['b1']
+    o1=o1*(o1>0)
+    o2=np.matmul(o1,self.params['W2'])+self.params['b2']
+    y_pred=np.argmax(o2,axis=1)
+                                                
+    
 
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
